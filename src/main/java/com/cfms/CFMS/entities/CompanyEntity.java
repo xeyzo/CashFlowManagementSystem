@@ -16,8 +16,13 @@ public class CompanyEntity {
     @Column(name = "company_code") // mapping ke kolom di DB
     private String companyCode;
 
+    @Column(name = "name")
     private String name;
+
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     // Constructors
@@ -37,6 +42,7 @@ public class CompanyEntity {
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
 
     // Getters & Setters
     public Long getId() { return id; }

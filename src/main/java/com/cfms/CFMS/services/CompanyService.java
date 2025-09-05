@@ -1,12 +1,15 @@
 package com.cfms.CFMS.services;
 
-import com.cfms.CFMS.dto.CompanyDto;
+import com.cfms.CFMS.dto.CompanyDTO.CompanyRequestDto;
+import com.cfms.CFMS.dto.CompanyDTO.CompanyResponseDto;
 import com.cfms.CFMS.entities.CompanyEntity;
+import com.cfms.CFMS.helpers.CompanyHelper;
 import com.cfms.CFMS.repositories.CompanyRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,13 +19,17 @@ public class CompanyService {
 
     private final CompanyRepository repo;
 
+    @Autowired
+    private CompanyHelper companyCodeHelper;
+
+
     public CompanyService(CompanyRepository repo) {
         this.repo = repo;
     }
 
     // Mapping entity -> DTO
-    private CompanyDto toDTO(CompanyEntity e) {
-        CompanyDto dto = new CompanyDto();
+    private CompanyResponseDto toDTO(CompanyEntity e) {
+        CompanyResponseDto dto = new CompanyResponseDto();
         dto.setId(e.getId());
         dto.setCompanyCode(e.getCompanyCode());
         dto.setName(e.getName());
@@ -31,58 +38,52 @@ public class CompanyService {
         return dto;
     }
 
-    // Mapping DTO -> Entity (untuk create)
-    private CompanyEntity toEntity(CompanyDto dto) {
+    private CompanyEntity toEntity(CompanyResponseDto dto) {
         CompanyEntity e = new CompanyEntity();
-        e.setCompanyCode(dto.getCompanyCode());
         e.setName(dto.getName());
         return e;
     }
 
-    // Update entity dari DTO (supaya tidak overwrite createdAt)
-    private void updateEntityFromDto(CompanyEntity e, CompanyDto dto) {
-        e.setCompanyCode(dto.getCompanyCode());
+    private void updateEntityFromDto(CompanyEntity e, CompanyResponseDto dto) {
         e.setName(dto.getName());
         e.setUpdatedAt(LocalDateTime.now());
     }
 
-    public CompanyDto create(CompanyDto dto) {
-        if (repo.existsByCompanyCode(dto.getCompanyCode())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Company code already exists");
-        }
-        if (repo.existsByName(dto.getName())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Company name already exists");
-        }
+    public CompanyResponseDto create(CompanyRequestDto dto) {
 
-        CompanyEntity entity = toEntity(dto);
-        entity.setCreatedAt(LocalDateTime.now());
-        entity.setUpdatedAt(LocalDateTime.now());
+        // 1. Siapkan semua data yang dibutuhkan
+        String nextCompanyCode = companyCodeHelper.generateNextCompanyCode();
+        String companyName = dto.getName();
 
-        CompanyEntity saved = repo.save(entity);
-        return toDTO(saved);
+        // 2. Rakit objek Entity baru secara eksplisit
+        CompanyEntity newEntity = new CompanyEntity();
+        newEntity.setCompanyCode(nextCompanyCode);
+        newEntity.setName(companyName);
+
+        // 3. Simpan entitas yang sudah lengkap
+        CompanyEntity savedEntity = repo.save(newEntity);
+
+        // 4. Konversi ke DTO untuk respons
+        return toDTO(savedEntity);
     }
 
-    public List<CompanyDto> findAll() {
+    public List<CompanyResponseDto> findAll() {
         return repo.findAll()
                 .stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
-    public CompanyDto findById(Long id) {
+    public CompanyResponseDto findById(Long id) {
         CompanyEntity e = repo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Company not found"));
         return toDTO(e);
     }
 
-    public CompanyDto update(Long id, CompanyDto dto) {
+    public CompanyResponseDto update(Long id, CompanyResponseDto dto) {
         CompanyEntity e = repo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Company not found"));
 
-        // Cek duplikasi saat update (kecuali dirinya sendiri)
-        if (repo.existsByCompanyCode(dto.getCompanyCode()) && !e.getCompanyCode().equals(dto.getCompanyCode())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Company code already exists");
-        }
         if (repo.existsByName(dto.getName()) && !e.getName().equals(dto.getName())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Company name already exists");
         }

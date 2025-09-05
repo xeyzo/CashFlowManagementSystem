@@ -1,15 +1,14 @@
-package com.cfms.CFMS.dto;
+package com.cfms.CFMS.dto.CompanyDTO;
 
 import java.time.LocalDateTime;
 
-public class CompanyDto {
+public class CompanyResponseDto {
     private Long id;
     private String companyCode;
     private String name;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Getters & Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
