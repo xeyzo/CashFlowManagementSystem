@@ -38,11 +38,6 @@ public class CompanyService {
         return dto;
     }
 
-    private CompanyEntity toEntity(CompanyResponseDto dto) {
-        CompanyEntity e = new CompanyEntity();
-        e.setName(dto.getName());
-        return e;
-    }
 
     private void updateEntityFromDto(CompanyEntity e, CompanyResponseDto dto) {
         e.setName(dto.getName());
@@ -51,19 +46,19 @@ public class CompanyService {
 
     public CompanyResponseDto create(CompanyRequestDto dto) {
 
-        // 1. Siapkan semua data yang dibutuhkan
+        if (repo.existsByName(dto.getName())) {
+            throw new IllegalStateException("Company name '" + dto.getName() + "' already exists.");
+        }
+
         String nextCompanyCode = companyCodeHelper.generateNextCompanyCode();
         String companyName = dto.getName();
 
-        // 2. Rakit objek Entity baru secara eksplisit
         CompanyEntity newEntity = new CompanyEntity();
         newEntity.setCompanyCode(nextCompanyCode);
         newEntity.setName(companyName);
 
-        // 3. Simpan entitas yang sudah lengkap
         CompanyEntity savedEntity = repo.save(newEntity);
 
-        // 4. Konversi ke DTO untuk respons
         return toDTO(savedEntity);
     }
 
